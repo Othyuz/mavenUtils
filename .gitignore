@@ -1,0 +1,14 @@
+/target/
+/target/.**
+.metadata
+*.iml
+/*/dependency-reduced-pom.xml
+/*/.project
+/*/.settings
+/*/.classpath
+/*/target
+/*/target/*
+/.idea
+/.idea/*
+/*/.idea
+/*/.idea/*
