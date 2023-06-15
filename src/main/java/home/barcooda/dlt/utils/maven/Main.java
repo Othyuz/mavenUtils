@@ -77,8 +77,11 @@ public class Main {
                         errorMessage.append(lineSeparator).append(lineSeparator);
                     });
                     throw new Exception(errorMessage.toString());
-                } else
+                } else {
+                    if (modules.stream().anyMatch(Module::isHasRevisionAlias))
+                        System.out.println("INFORMATION: revision version assignment(s) found - in matching cases the matching properties revision(s) will be updated!");
                     MavenUtils.updatePomInformation(modules, mavenUpdate.getCriteria(), mavenUpdate.getMasterName(), mavenUpdate.getDevelopName());
+                }
                 System.out.println("INFORMATION: update completed!");
             } else
                 throw new Exception("no modules found!");

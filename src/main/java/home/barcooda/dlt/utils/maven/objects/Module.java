@@ -17,6 +17,8 @@ public class Module {
    private boolean updatePomHeader;
    private String gitModuleVersion;
 
+   private boolean hasRevisionAlias;
+
    public Module() {
       setUuid(UUID.randomUUID().toString());
    }

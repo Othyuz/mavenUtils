@@ -37,6 +37,8 @@ public class MavenUtils {
     private static final String XML_TAG_VERSION = "version";
     private static final String XML_TAG_DEPENDENCIES = "dependencies";
     private static final String XML_TAG_GROUP_ID = "groupId";
+    private static final String XML_TAG_PROPERTIES = "properties";
+    private static final String XML_TAG_REVISION = "revision";
     private static final String XML_TAG_PARENT = "parent";
     private static final String FILE_NAME_POM_XML = "pom.xml";
     private static final String GIT_BRANCH_LIST_PREFIX = "refs/heads/";
@@ -45,6 +47,9 @@ public class MavenUtils {
 
 
     private static final String GIT_FEATURE_BRANCH_PREFIX = "feature/";
+
+
+    private static final String REVISION_VERSION_ALIAS = "${revision}";
 
 
     @Setter(AccessLevel.PROTECTED)
@@ -223,12 +228,35 @@ public class MavenUtils {
             }
         }
         Module module = getModule(getModuleInformation(), moduleGroupId, moduleArtifactId);
-        if (module != null && (module.isUpdatePomHeader() || updateDependencies)) {
-            for (int i = 0; i < nodeListLength; i++) {
-                Node nodeEntry = nodeList.item(i);
-                if (XML_TAG_VERSION.equals(nodeEntry.getNodeName())) {
-                    nodeEntry.setTextContent(module.getVersion());
-                    break;
+        if (module != null) {
+            if (module.isUpdatePomHeader() || updateDependencies) {
+                for (int i = 0; i < nodeListLength; i++) {
+                    Node nodeEntry = nodeList.item(i);
+                    if (XML_TAG_VERSION.equals(nodeEntry.getNodeName()) && !module.isHasRevisionAlias()) {
+                        nodeEntry.setTextContent(module.getVersion());
+                        break;
+                    }
+                }
+            }
+            if (module.isHasRevisionAlias()) {
+                boolean searchCompleted = false;
+                for (int i = 0; i < nodeListLength; i++) {
+                    Node nodeEntry = nodeList.item(i);
+                    if (XML_TAG_PROPERTIES.equals(nodeEntry.getNodeName())) {
+                        NodeList propertiesNode = nodeEntry.getChildNodes();
+                        int propertiesNodeSize = propertiesNode.getLength();
+                        for (int j = 0; j < propertiesNodeSize; j++) {
+                            Node propertyNodeEntry = propertiesNode.item(j);
+                            if (XML_TAG_REVISION.equals(propertyNodeEntry.getNodeName())) {
+                                propertyNodeEntry.setTextContent(module.getVersion());
+                                searchCompleted = true;
+                            }
+                            if (searchCompleted)
+                                break;
+                        }
+                    }
+                    if (searchCompleted)
+                        break;
                 }
             }
         }
@@ -330,6 +358,10 @@ public class MavenUtils {
                 break;
             }
         }
+
+        if (REVISION_VERSION_ALIAS.equals(module.getVersion()))
+            module.setHasRevisionAlias(true);
+
         return module;
     }
 }
