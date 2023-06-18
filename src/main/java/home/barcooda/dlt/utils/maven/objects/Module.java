@@ -19,6 +19,9 @@ public class Module {
 
    private boolean hasRevisionAlias;
 
+
+   private Module parentModule;
+
    public Module() {
       setUuid(UUID.randomUUID().toString());
    }

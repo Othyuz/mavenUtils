@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 public class MavenUtils {
 
     private static final String PATH_SLASH = "/";
+    private static final String PATH_BACKSLASH = "\\\\";
     public static final String HYPHEN = "-";
     private static final String XML_TAG_PROJECT = "project";
     private static final String XML_TAG_ARTIFACT_ID = "artifactId";
@@ -108,6 +109,15 @@ public class MavenUtils {
             }
         }
 
+        if (modules.size() > 0) {
+            List<Module> foundModules = modules;
+            modules.forEach(module -> {
+                String parentDirectoryName = new File(module.getPath()).getParent().replaceAll(PATH_BACKSLASH, PATH_SLASH);
+                Optional<Module> parentModuleOptional = foundModules.stream().filter(foundModule -> parentDirectoryName.equals(foundModule.getPath())).findFirst();
+                parentModuleOptional.ifPresent(module::setParentModule);
+            });
+        }
+
         return modules;
     }
 
@@ -119,7 +129,7 @@ public class MavenUtils {
                         || module.getArtifactId() == null || module.getArtifactId().length() == 0) {
                     UpdateError updateError = new UpdateError();
                     Path path = Paths.get(module.getPath());
-                    updateError.setPath(path.toAbsolutePath().normalize().toString());
+                    updateError.setPath(path.toAbsolutePath().normalize().toString().replaceAll(PATH_BACKSLASH, PATH_SLASH));
                     if (module.getGroupId() == null || module.getGroupId().length() == 0)
                         updateError.setGroupIdMissing(true);
                     if (module.getArtifactId() == null || module.getArtifactId().length() == 0)
@@ -188,7 +198,7 @@ public class MavenUtils {
         NodeList nodeList = doc.getElementsByTagName(XML_TAG_PROJECT);
         int nodeListLength = nodeList.item(0).getChildNodes().getLength();
 
-        updatePom(nodeList.item(0).getChildNodes(), nodeListLength, true);
+        updatePom(nodeList.item(0).getChildNodes(), nodeListLength, false);
 
         for (int i = 0; i < nodeListLength; i++) {
             Node nodeEntry = nodeList.item(0).getChildNodes().item(i);
@@ -216,10 +226,8 @@ public class MavenUtils {
                     break;
                 case XML_TAG_PARENT:
                     parentChecked = true;
-                    if (updateDependencies) {
-                        NodeList parentNodeList = nodeEntry.getChildNodes();
-                        updatePom(parentNodeList, parentNodeList.getLength(), updateDependencies);
-                    }
+                    NodeList parentNodeList = nodeEntry.getChildNodes();
+                    updatePom(parentNodeList, parentNodeList.getLength(), false);
                     break;
             }
 
@@ -228,12 +236,22 @@ public class MavenUtils {
             }
         }
         Module module = getModule(getModuleInformation(), moduleGroupId, moduleArtifactId);
+        if (module != null && module.getParentModule() != null)
+            module = module.getParentModule();
         if (module != null) {
-            if (module.isUpdatePomHeader() || updateDependencies) {
+            if ((module.isUpdatePomHeader() && !module.isHasRevisionAlias()) || updateDependencies) {
                 for (int i = 0; i < nodeListLength; i++) {
                     Node nodeEntry = nodeList.item(i);
-                    if (XML_TAG_VERSION.equals(nodeEntry.getNodeName()) && !module.isHasRevisionAlias()) {
+                    if (XML_TAG_VERSION.equals(nodeEntry.getNodeName())) {
                         nodeEntry.setTextContent(module.getVersion());
+                        break;
+                    }
+                }
+            } else if (!updateDependencies && module.isUpdatePomHeader()) {
+                for (int i = 0; i < nodeListLength; i++) {
+                    Node nodeEntry = nodeList.item(i);
+                    if (XML_TAG_VERSION.equals(nodeEntry.getNodeName())) {
+                        nodeEntry.setTextContent(REVISION_VERSION_ALIAS);
                         break;
                     }
                 }
@@ -316,7 +334,7 @@ public class MavenUtils {
 
     private Module getNewModule(String baseFilePath, String gitModuleVersion) {
         Module module = new Module();
-        module.setPath(baseFilePath);
+        module.setPath(baseFilePath.replaceAll(PATH_BACKSLASH, PATH_SLASH));
         module.setGitModuleVersion(gitModuleVersion);
         return module;
     }
@@ -359,8 +377,28 @@ public class MavenUtils {
             }
         }
 
-        if (REVISION_VERSION_ALIAS.equals(module.getVersion()))
+        if (REVISION_VERSION_ALIAS.equals(module.getVersion())) {
             module.setHasRevisionAlias(true);
+            boolean searchCompleted = false;
+            for (int i = 0; i < nodeListLength; i++) {
+                Node nodeEntry = nodeList.item(0).getChildNodes().item(i);
+                if (XML_TAG_PROPERTIES.equals(nodeEntry.getNodeName())) {
+                    NodeList propertiesNode = nodeEntry.getChildNodes();
+                    int propertiesNodeSize = propertiesNode.getLength();
+                    for (int j = 0; j < propertiesNodeSize; j++) {
+                        Node propertyNodeEntry = propertiesNode.item(j);
+                        if (XML_TAG_REVISION.equals(propertyNodeEntry.getNodeName())) {
+                            module.setVersion(propertyNodeEntry.getTextContent());
+                            searchCompleted = true;
+                        }
+                        if (searchCompleted)
+                            break;
+                    }
+                }
+                if (searchCompleted)
+                    break;
+            }
+        }
 
         return module;
     }
