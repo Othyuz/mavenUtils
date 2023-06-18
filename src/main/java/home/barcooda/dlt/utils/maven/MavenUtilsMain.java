@@ -23,7 +23,6 @@ public class MavenUtilsMain {
                 throw new Exception("'" + Constants.MAVEN_UPDATE_INFORMATION + "' is empty or not defined!");
             ObjectMapper mapper = new ObjectMapper();
             MavenUpdate mavenUpdate = null;
-            mavenUpdateInformationString = "{\"masterName\":\"master\",\"developName\":\"dev\",\"paths\":[\"C:/userFiles/programming/repositories/test/IntelliJ_Project/zTest\"],\"criteria\":[{\"groupId\":\"test\",\"artifactId\":\"test\",\"version\":\"1.2.3.4.123456789\",\"useBranchName\":true}]}";
             mavenUpdate = mapper.readValue(mavenUpdateInformationString, MavenUpdate.class);
             if (mavenUpdate.getMasterName() == null || mavenUpdate.getMasterName().length() == 0)
                 throw new Exception("'masterName' is empty or not defined in '" + Constants.MAVEN_UPDATE_INFORMATION + "'!");
