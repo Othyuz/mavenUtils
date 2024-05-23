@@ -17,8 +17,7 @@ public class MavenUtilsMain {
     public static void runMain() {
         // https://stackoverflow.com/questions/6192661/how-to-reference-a-resource-file-correctly-for-jar-and-debugging
         try {
-            DltEnvironment environment = DltEnvironment.getInstance();
-            String mavenUpdateInformationString = environment.getProperty(Constants.MAVEN_UPDATE_INFORMATION);
+            String mavenUpdateInformationString = DltEnvironment.getProperty(Constants.MAVEN_UPDATE_INFORMATION);
             if (mavenUpdateInformationString == null)
                 throw new Exception("'" + Constants.MAVEN_UPDATE_INFORMATION + "' is empty or not defined!");
             ObjectMapper mapper = new ObjectMapper();
@@ -40,7 +39,7 @@ public class MavenUtilsMain {
                 String newPath = path;
                 File filePath = new File(path);
                 if (!filePath.isAbsolute()) {
-                    newPath = environment.replaceDltEnvironmentProperties(path);
+                    newPath = DltEnvironment.replaceDltEnvironmentProperties(path);
                     filePath = new File(newPath);
                 }
                 if (!filePath.exists())

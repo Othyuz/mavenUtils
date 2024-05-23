@@ -17,6 +17,10 @@ public class DltEnvironment {
     @Setter(AccessLevel.PROTECTED)
     private Map<String, String> properties;
 
+    static {
+        instance = new DltEnvironment();
+    }
+
     protected DltEnvironment() {
         String configPath = null;
         try {
@@ -68,7 +72,7 @@ public class DltEnvironment {
         }
     }
 
-    public String replaceDltEnvironmentProperties(String path) {
+    public static String replaceDltEnvironmentProperties(String path) {
         if (path != null) {
             if (path.contains(Constants.ENVIRONMENT_BASE_PATH))
                 path = path.replace(Constants.ENVIRONMENT_BASE_PATH, getProperty(Constants.DLT_ENVIRONMENT_BASE_PATH));
@@ -77,15 +81,24 @@ public class DltEnvironment {
         return path;
     }
 
-    public String getProperty(String key) {
-        if (getProperties().containsKey(key))
-            return getProperties().get(key);
+    public static String getProperty(String key) {
+        if (getInstance().getProperties().containsKey(key))
+            return getInstance().getProperties().get(key);
         return null;
     }
 
-    public List<String> getPropertyKeys() {
+    public static <T> T getProperty(String key, Class<T> clazz) {
+        if (getInstance().getProperties().containsKey(key)) {
+            try {
+                return (T) getInstance().getProperties().get(key);
+            } catch (Exception e) {}
+        }
+        return null;
+    }
+
+    public static List<String> getPropertyKeys() {
         List<String> keyList = new ArrayList<>();
-        Iterator it = getProperties().entrySet().iterator();
+        Iterator it = getInstance().getProperties().entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, String> pair = (Map.Entry<String, String>)it.next();
             keyList.add(pair.getKey());
@@ -93,10 +106,7 @@ public class DltEnvironment {
         return keyList;
     }
 
-    public static synchronized DltEnvironment getInstance() {
-        if (DltEnvironment.instance == null) {
-            DltEnvironment.instance = new DltEnvironment();
-        }
-        return DltEnvironment.instance;
+    protected static DltEnvironment getInstance() {
+        return instance;
     }
 }
